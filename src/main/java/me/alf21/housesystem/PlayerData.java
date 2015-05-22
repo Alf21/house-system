@@ -7,7 +7,7 @@ import net.gtaun.util.event.EventManager;
 import java.util.Timer;
 
 /**
- * Created by Alf21 on 28.04.2015 in project weapon_system.
+ * Created by Alf21 on 20.05.2015 in project house-system.
  * Copyright (c) 2015 Alf21. All rights reserved.
  **/
 

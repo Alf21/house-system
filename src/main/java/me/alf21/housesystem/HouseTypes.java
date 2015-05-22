@@ -1,11 +1,12 @@
 package me.alf21.housesystem;
 
 /**
- * Created by marvin on 15.05.15 in project weapon_system.
- * Copyright (c) 2015 Marvin Haschker. All rights reserved.
- */
+ * Created by Alf21 on 20.05.2015 in project house-system.
+ * Copyright (c) 2015 Alf21. All rights reserved.
+ **/
 public enum HouseTypes {
-    NORMALHOUSE("NormalHouse");
+    HOUSE("House"),
+    OBJECT("Object"); //TODO: Or the Housetypes eg. for the price like villa or ghetto
 
     private String displayName;
 

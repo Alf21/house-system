@@ -1,8 +1,13 @@
 package me.alf21.housesystem;
 
+import java.io.IOException;
+
 import net.gtaun.shoebill.object.Player;
 
-import java.io.IOException;
+/**
+ * Created by Alf21 on 20.05.2015 in project house-system.
+ * Copyright (c) 2015 Alf21. All rights reserved.
+ **/
 
 public class HouseShop {
 	public PlayerData playerLifecycle;

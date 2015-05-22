@@ -2,31 +2,16 @@ package me.alf21.housesystem;
 
 import net.gtaun.shoebill.Shoebill;
 import net.gtaun.shoebill.common.command.PlayerCommandManager;
-import net.gtaun.shoebill.constant.WeaponModel;
 import net.gtaun.shoebill.event.player.*;
 import net.gtaun.shoebill.object.*;
 import net.gtaun.util.event.HandlerPriority;
 
 import java.util.HashMap;
 
-//import net.gtaun.shoebill.constant.SpecialAction;
-//import net.gtaun.shoebill.object.Timer;
-
 /**
- * Created by Alf21 on 28.04.2015 in project weapon-system.
+ * Created by Alf21 on 20.05.2015 in project house-system.
  * Copyright (c) 2015 Alf21. All rights reserved.
  **/
-
-/*
- * TODO:
- *         
- * - Wenn man durch eine Explosion getoetet wurde, welche durch einen Schuss eines Spielers ausgeloest wurde:
- *   Lsg.: Bekommen der Position der Explosion
- *         Bekommen des Spielers, der dorthin bzw. in die Naehe geschossen hat
- *         Ihn als Killer setzen
- *         
- * - Animation, wenn man Weaponshop betritt, zB hinhocken und in ner Tasche rumkramen usw...
- */
 
 public class PlayerManager implements Destroyable {
 	public PlayerData playerLifecycle;
@@ -35,7 +20,7 @@ public class PlayerManager implements Destroyable {
 
 	public PlayerManager()
 	{
-		this.houseDataMap = new HashMap<>();
+		this.houseDataMap = new HashMap<String, HouseData>();
 		
 		commandManager = new PlayerCommandManager(HouseSystem.getInstance().getEventManagerInstance());
 	    commandManager.registerCommands(new Commands());
@@ -46,14 +31,6 @@ public class PlayerManager implements Destroyable {
 		HouseSystem.getInstance().getEventManagerInstance().registerHandler(PlayerConnectEvent.class, (e) -> {
 			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			initHouse(e.getPlayer().getName());
-			
-			if(hasHouseData(e.getPlayer().getName())){
-				if(playerLifecycle.isHouseSpawn()){
-					HouseData houseData = getHouseData(e.getPlayer().getName());
-					Shoebill.get().runOnSampThread(() -> e.getPlayer().setSpawnInfo(houseData.getLocation().x, houseData.getLocation().y, houseData.getLocation().z, 
-							0, 0, 0.0f, 0, 0, WeaponModel.get(0), 0, WeaponModel.get(0), 0, WeaponModel.get(0), 0));
-				}
-			}
 		});
 		
 //PlayerWeaponShotEvent
@@ -83,8 +60,8 @@ public class PlayerManager implements Destroyable {
 			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			if(hasHouseData(e.getPlayer().getName())){
 				if(playerLifecycle.isHouseSpawn()){
-					if(getHouseData(e.getPlayer().getName()).getSpawnLocation() != e.getPlayer().getLocation()){
-						e.getPlayer().setLocation(getHouseData(e.getPlayer().getName()).getSpawnLocation());
+					if(getHouseData(e.getPlayer().getName()).getSpawnLocation() != e.getPlayer().getLocation() && getHouseData(e.getPlayer().getName()).getSpawnLocation() != null){
+						Shoebill.get().runOnSampThread(() -> e.getPlayer().setLocation(getHouseData(e.getPlayer().getName()).getSpawnLocation()));
 					}
 				}
 			}
@@ -107,7 +84,9 @@ public class PlayerManager implements Destroyable {
 			if(HouseSystem.getInstance().getMysqlConnection().exist(playerName)){
 				playerLifecycle.setHouseId(HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
 				playerLifecycle.setHouseSpawn(HouseSystem.getInstance().getMysqlConnection().isHouseSpawn(playerName));
-				HouseData houseData = new HouseData(playerName, HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
+				HouseData houseData;
+				if(!hasHouseData(playerName)) houseData = new HouseData(playerName, HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
+				else houseData = getHouseData(playerName);
 				houseData.setLevel(HouseSystem.getInstance().getMysqlConnection().getHouseLevel(playerName));
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
@@ -116,11 +95,14 @@ public class PlayerManager implements Destroyable {
 				addHouseData(playerName, houseData);
 			}
 			else {
+				playerLifecycle.setHouseId(0);
 				playerLifecycle.setHouseSpawn(false);
 			}
 		} else {
 			if(HouseSystem.getInstance().getMysqlConnection().exist(playerName)){
-				HouseData houseData = new HouseData(playerName, HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
+				HouseData houseData;
+				if(!hasHouseData(playerName)) houseData = new HouseData(playerName, HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
+				else houseData = getHouseData(playerName);
 				houseData.setLevel(HouseSystem.getInstance().getMysqlConnection().getHouseLevel(playerName));
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
@@ -168,7 +150,9 @@ public class PlayerManager implements Destroyable {
 	}
 
 	public void deleteHouseData(String playerName){
-    	if(houseDataMap.containsKey(playerName)) houseDataMap.remove(playerName);
+    	if(houseDataMap.containsKey(playerName)) 
+    		while(hasHouseData(playerName))
+    			houseDataMap.remove(playerName);
 	}
 
 	public void uninitialize()

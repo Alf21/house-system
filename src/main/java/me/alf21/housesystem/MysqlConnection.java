@@ -10,7 +10,7 @@ import net.gtaun.shoebill.data.Location;
 /**
  * Created by Marvin on 26.05.2014.
  * Edited & Added Funktions by Alf21.
- */
+ **/
 public class MysqlConnection {
     private boolean initialized;
     private Connection connection;
