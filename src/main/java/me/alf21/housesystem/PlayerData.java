@@ -2,6 +2,7 @@ package me.alf21.housesystem;
 
 import net.gtaun.shoebill.common.player.PlayerLifecycleObject;
 import net.gtaun.shoebill.object.Player;
+import net.gtaun.shoebill.object.SampObject;
 import net.gtaun.util.event.EventManager;
 
 import java.util.Timer;
@@ -15,8 +16,10 @@ class PlayerData extends PlayerLifecycleObject {
     private Player player;
     private int money;
 	private Timer playerTimer;
-	private int houseId;
 	private boolean houseSpawn;
+	private SampObject editObject;
+	private String editHouseOwner;
+	private boolean inHouse;
 
     public PlayerData(EventManager eventManager, Player player) {
         super(eventManager, player);
@@ -47,20 +50,33 @@ class PlayerData extends PlayerLifecycleObject {
 		this.playerTimer = playerTimer;
 	}
     
-    int getHouseId() {
-		return houseId;
-	}
-    
-    void setHouseId(int houseId) {
-		this.houseId = houseId;
-	}
-    
     boolean isHouseSpawn() {
 		return houseSpawn;
 	}
     
     void setHouseSpawn(boolean houseSpawn) {
 		this.houseSpawn = houseSpawn;
+	}
+    
+    SampObject getEditObject() {
+		return editObject;
+	}
+    void setEditObject(SampObject editObject) {
+		this.editObject = editObject;
+	}
+    
+    String getEditHouseOwner() {
+		return editHouseOwner;
+	}
+    void setEditHouseOwner(String editHouseOwner) {
+		this.editHouseOwner = editHouseOwner;
+	}
+    
+    boolean isInHouse() {
+		return inHouse;
+	}
+    void setInHouse(boolean inHouse) {
+		this.inHouse = inHouse;
 	}
     
 

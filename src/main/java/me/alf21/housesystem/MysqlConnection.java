@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.sql.*;
 
 import net.gtaun.shoebill.data.Location;
+import net.gtaun.shoebill.data.Vector3D;
 
 /**
  * Created by Marvin on 26.05.2014.
@@ -71,7 +72,10 @@ public class MysqlConnection {
                 			"house_spawn BOOL NOT NULL DEFAULT '1', " +
                 			"house_X FLOAT, " + 
                 			"house_Y FLOAT, " + 
-                			"house_Z FLOAT)");
+                			"house_Z FLOAT, " +
+                			"spawn_X FLOAT NOT NULL DEFAULT '0', " +
+                			"spawn_Y FLOAT NOT NULL DEFAULT '0', " +
+                			"spawn_Z FLOAT NOT NULL DEFAULT '0')");
     		} else {
                 HouseSystem.getInstance().getLoggerInstance().info("Mysql Datenbank konnte nicht erstellt werden.");
             }
@@ -122,11 +126,11 @@ public class MysqlConnection {
                 rs = statement.executeQuery(query);
 				if(rs.first()){
 					try {
-						if(!rs.getString(field).toLowerCase().equals(str.toLowerCase())){
+						if(rs.getString(field).toLowerCase().equals(str.toLowerCase())){
 							return true;
 						}
 					} catch (Exception e){
-						return true;
+						return false;
 					}
 				}
             }
@@ -138,6 +142,54 @@ public class MysqlConnection {
             e.printStackTrace();
         }
 		return false;   
+	}
+
+	public float getFloat(String table, String playerName, String field) {
+        ResultSet rs;
+        Statement statement;
+        String query = String.format("SELECT * FROM %s WHERE player = '%s'", table, playerName);
+        try {
+            if (connection != null && connection.isValid(1000)) {
+            	statement = connection.createStatement();
+                rs = statement.executeQuery(query);
+				if(rs.first()){
+					try {
+						return rs.getFloat(field);
+					} catch (Exception e){
+						return 0.0f;
+					}
+				}
+            }
+			else {
+				return 0.0f;
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+        }
+		return 0.0f;   
+	}
+
+	public String getHouseOwner(int houseId) {
+        ResultSet rs;
+        Statement statement;
+        String query = String.format("SELECT * FROM samp_housesystem WHERE Id = '%d'", houseId);
+        try {
+            if (connection != null && connection.isValid(1000)) {
+            	statement = connection.createStatement();
+                rs = statement.executeQuery(query);
+				if(rs.first()){
+					return rs.getString("player");
+				}
+            }
+			else {
+				return null;
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+        }
+		return null;
 	}
 
 	public Integer getHouseId(String playerName) {
@@ -294,6 +346,17 @@ public class MysqlConnection {
 		}
 	}
 
+	public void deleteHouse(int houseId) {
+		try {
+			if (connection != null && connection.isValid(1000)) {
+				executeUpdate(String.format("DELETE FROM samp_housesystem WHERE Id = '%s'", houseId));
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+		}
+	}
+
 	public void updateHouse(String playerName, String str, int value) {
 		Statement statement;
 		try {
@@ -319,5 +382,37 @@ public class MysqlConnection {
             System.out.print("ERROR - Stacktrace : ");
             e.printStackTrace();
         }
+	}
+
+	public void updateSpawnLocation(String playerName, Vector3D vector3d) {
+		Statement statement;
+		try {
+            if (connection != null && connection.isValid(1000)) {
+            	statement = connection.createStatement();
+                statement.execute("UPDATE samp_housesystem SET spawn_X = '"+vector3d.x+"', spawn_Y = '"+vector3d.y+"', spawn_Z = '"+vector3d.z+"' WHERE player = '"+playerName+"'");
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+        }
+	}
+
+//
+	public String aCreateHouse(String part, int modelId, float x, float y, float z) {
+		try {
+			int Id = 0;
+			if (connection != null && connection.isValid(1000)) {
+				Id = executeUpdate("INSERT INTO samp_housesystem (house_model, house_X, house_Y, house_Z) VALUES ('"+modelId+"', '"+x+"', '"+y+"', '"+z+"')");
+				if (Id != 0) {
+					part += Id;
+					executeUpdate("UPDATE samp_housesystem SET player = '"+part+"' WHERE Id = '"+Id+"'");
+					return part;
+				}
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+		}
+		return null;
 	}
 }

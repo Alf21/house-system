@@ -99,7 +99,7 @@ public class HouseSystem extends Plugin {
         try {
 			while(houseSet.next()) {
 				if(!HouseModel.initialize(houseSet.getString("player"), houseSet.getInt("house_model"))) System.out.println("Invalid modelId ('" + houseSet.getInt("house_model") + "') in column of " + houseSet.getString("player"));
-				HouseModel.createModel(houseSet.getString("player"), new Location(houseSet.getFloat("house_X"), houseSet.getFloat("house_Y"), houseSet.getFloat("house_Z")), houseSet.getInt("house_model"));
+				HouseModel.moveModel(houseSet.getString("player"), new Location(houseSet.getFloat("house_X"), houseSet.getFloat("house_Y"), houseSet.getFloat("house_Z")), houseSet.getInt("house_model"));
 			}
 		} catch (SQLException e) {
 			System.out.println("SQL ERROR! - ");

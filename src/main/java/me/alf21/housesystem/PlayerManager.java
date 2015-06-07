@@ -2,6 +2,9 @@ package me.alf21.housesystem;
 
 import net.gtaun.shoebill.Shoebill;
 import net.gtaun.shoebill.common.command.PlayerCommandManager;
+import net.gtaun.shoebill.constant.ObjectEditResponse;
+import net.gtaun.shoebill.data.Location;
+import net.gtaun.shoebill.data.Vector3D;
 import net.gtaun.shoebill.event.player.*;
 import net.gtaun.shoebill.object.*;
 import net.gtaun.util.event.HandlerPriority;
@@ -15,7 +18,7 @@ import java.util.HashMap;
 
 public class PlayerManager implements Destroyable {
 	public PlayerData playerLifecycle;
-	private HashMap<String, HouseData> houseDataMap;
+	HashMap<String, HouseData> houseDataMap;
 	public PlayerCommandManager commandManager;
 
 	public PlayerManager()
@@ -45,7 +48,18 @@ public class PlayerManager implements Destroyable {
 		
 //PlayerUpdateEvent
 		HouseSystem.getInstance().getEventManagerInstance().registerHandler(PlayerUpdateEvent.class, (e) -> {
-			
+			if (e.getPlayer().getUpdateCount() % 5 == 0)
+			{
+				playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				HouseData houseData = HouseModel.getHouse(e.getPlayer().getLocation());
+				if(!playerLifecycle.isInHouse() && houseData != null) {
+					playerLifecycle.setInHouse(true);
+					e.getPlayer().sendMessage("Du befindest dich nun im Haus von '" + houseData.getPlayerName() + "'!");
+				} else if (playerLifecycle.isInHouse() && houseData == null) {
+					playerLifecycle.setInHouse(false);
+					e.getPlayer().sendMessage("Du hast das Haus verlassen!");
+				}
+			}
 		});
 
 //PlayerDisconnectEvent
@@ -60,8 +74,16 @@ public class PlayerManager implements Destroyable {
 			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			if(hasHouseData(e.getPlayer().getName())){
 				if(playerLifecycle.isHouseSpawn()){
-					if(getHouseData(e.getPlayer().getName()).getSpawnLocation() != e.getPlayer().getLocation() && getHouseData(e.getPlayer().getName()).getSpawnLocation() != null){
-						Shoebill.get().runOnSampThread(() -> e.getPlayer().setLocation(getHouseData(e.getPlayer().getName()).getSpawnLocation()));
+					HouseData houseData = getHouseData(e.getPlayer().getName());
+					if (houseData.getSpawnLocation() != null)
+						if(houseData.getSpawnLocation().x != 0.0f
+						|| houseData.getSpawnLocation().y != 0.0f
+						|| houseData.getSpawnLocation().z != 0.0f){
+						Shoebill.get().runOnSampThread(() -> e.getPlayer().setLocation(houseData.isInitialized()?getHouseData(e.getPlayer().getName()).getSpawnLocation():new Location(
+								houseData.getSpawnLocation().x,
+								houseData.getSpawnLocation().y,
+								houseData.getSpawnLocation().z+1000.0f
+						)));
 					}
 				}
 			}
@@ -76,13 +98,38 @@ public class PlayerManager implements Destroyable {
 		HouseSystem.getInstance().getEventManagerInstance().registerHandler(PlayerKeyStateChangeEvent.class, (e) -> {
 			
 		});
+		
+//PlayerEditObjectEvent
+		HouseSystem.getInstance().getEventManagerInstance().registerHandler(PlayerEditObjectEvent.class, (e) -> {
+			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+			/*if (playerLifecycle.getEditObject() == e.getObject()
+			&& e.getEditResponse() == ObjectEditResponse.UPDATE) {
+				HouseModel.moveModel(playerLifecycle.getEditHouseOwner(), e.getNewLocation(), getHouseData(playerLifecycle.getEditHouseOwner()).getHouseId());
+			}*/
+			if(playerLifecycle.getEditObject() == e.getObject()
+			&& e.getEditResponse() == ObjectEditResponse.FINAL) {
+				HouseModel.moveModel(playerLifecycle.getEditHouseOwner(), e.getNewLocation(), getHouseData(playerLifecycle.getEditHouseOwner()).getHouseId());
+				HouseModel.finishEditModel(e.getPlayer(), playerLifecycle.getEditHouseOwner());
+			}
+			if(playerLifecycle.getEditObject() == e.getObject()
+			&& e.getEditResponse() == ObjectEditResponse.CANCEL) {
+				if(!HouseSystem.getInstance().getPlayerManager().hasHouseData(playerLifecycle.getEditHouseOwner())){
+					e.getPlayer().sendMessage(playerLifecycle.getEditHouseOwner() + " hat gar kein Haus!");
+				} else {
+					HouseSystem.getInstance().getMysqlConnection().updateSpawnLocation(playerLifecycle.getEditHouseOwner(), new Vector3D(0,0,0));
+					HouseModel.destroyModel(playerLifecycle.getEditHouseOwner());
+					HouseSystem.getInstance().getPlayerManager().uninitHouse(playerLifecycle.getEditHouseOwner());
+					HouseSystem.getInstance().getMysqlConnection().deleteHouse(playerLifecycle.getEditHouseOwner());
+					e.getPlayer().sendMessage("Du hast das Haus von '"+playerLifecycle.getEditHouseOwner()+"' zerstoert!");
+				}
+			}
+		});
 	}
 	
 	void initHouse(String playerName){
 		if(Player.get(playerName) != null){
 			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(Player.get(playerName), PlayerData.class);
 			if(HouseSystem.getInstance().getMysqlConnection().exist(playerName)){
-				playerLifecycle.setHouseId(HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
 				playerLifecycle.setHouseSpawn(HouseSystem.getInstance().getMysqlConnection().isHouseSpawn(playerName));
 				HouseData houseData;
 				if(!hasHouseData(playerName)) houseData = new HouseData(playerName, HouseSystem.getInstance().getMysqlConnection().getHouseId(playerName));
@@ -91,11 +138,10 @@ public class PlayerManager implements Destroyable {
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
 				houseData.setOpen(false);
-				houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData.getModel()));
+			//	houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData));
 				addHouseData(playerName, houseData);
 			}
 			else {
-				playerLifecycle.setHouseId(0);
 				playerLifecycle.setHouseSpawn(false);
 			}
 		} else {
@@ -107,7 +153,7 @@ public class PlayerManager implements Destroyable {
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
 				houseData.setOpen(false);
-				houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData.getModel()));
+			//	houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData));
 				addHouseData(playerName, houseData);
 			}
 		}
@@ -117,7 +163,6 @@ public class PlayerManager implements Destroyable {
 		if(Player.get(playerName) != null){
 			playerLifecycle = HouseSystem.getInstance().getPlayerLifecycleHolder().getObject(Player.get(playerName), PlayerData.class);
 			if(HouseSystem.getInstance().getMysqlConnection().exist(playerName) && hasHouseData(playerName)){
-				playerLifecycle.setHouseId(0);
 				playerLifecycle.setHouseSpawn(false);
 				deleteHouseData(playerName);
 			}
