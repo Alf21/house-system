@@ -20,10 +20,13 @@ public class HouseData implements Destroyable{
 	private int model; //TODO doubled?
 	private int level;
 	private Location location;
+	private Vector3D rotation;
 	private Vector3D spawnLocation;
 	private ArrayList<SampObject> objects;
 	private ArrayList<SampObject> doors;
 	private HashMap<Integer, Boolean> door;
+	private ArrayList<SampObject> gates;
+	private HashMap<Integer, Boolean> gate;
 	private float minX, maxX, minY, maxY, minZ, maxZ;
 	private boolean initialized;
 
@@ -69,6 +72,13 @@ public class HouseData implements Destroyable{
 		this.location = location;
 	}
 	
+	Vector3D getRotation() {
+		return rotation;
+	}
+	void setRotation(Vector3D rotation) {
+		this.rotation = rotation;
+	}
+	
 	Vector3D getSpawnLocation() {
 		if (spawnLocation == null) {
 			spawnLocation = new Vector3D();
@@ -98,6 +108,17 @@ public class HouseData implements Destroyable{
 	void addDoors(SampObject door){
 		if (doors == null) doors = new ArrayList<SampObject>();
 		doors.add(door);
+		setDoorStatus(doors.size(), false);
+	}
+	
+	ArrayList<SampObject> getGates() {
+		if (gates == null) gates = new ArrayList<SampObject>();
+		return gates;
+	}
+	void addGates(SampObject gate){
+		if (gates == null) gates = new ArrayList<SampObject>();
+		gates.add(gate);
+		setGateStatus(gates.size(), false);
 	}
 	
 	void setMinX(float minX) {
@@ -148,6 +169,18 @@ public class HouseData implements Destroyable{
 	void setDoorStatus(int val, boolean bool) {
 		if (door == null) door = new HashMap<Integer, Boolean>();
 		door.put(val, bool);
+	}
+	
+	boolean isGateOpen(int val) {
+		if (gate == null) {
+			gate = new HashMap<Integer, Boolean>();
+		}
+		if (!gate.containsKey(val)) gate.put(val, false);
+		return gate.get(val);
+	}
+	void setGateStatus(int val, boolean bool) {
+		if (gate == null) gate = new HashMap<Integer, Boolean>();
+		gate.put(val, bool);
 	}
 	
 	boolean isInitialized() {

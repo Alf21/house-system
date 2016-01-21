@@ -75,15 +75,16 @@ public class PlayerManager implements Destroyable {
 			if(hasHouseData(e.getPlayer().getName())){
 				if(playerLifecycle.isHouseSpawn()){
 					HouseData houseData = getHouseData(e.getPlayer().getName());
-					if (houseData.getSpawnLocation() != null)
-						if(houseData.getSpawnLocation().x != 0.0f
+					if (houseData.getSpawnLocation() != null){
+					/*	if(houseData.getSpawnLocation().x != 0.0f
 						|| houseData.getSpawnLocation().y != 0.0f
-						|| houseData.getSpawnLocation().z != 0.0f){
-						Shoebill.get().runOnSampThread(() -> e.getPlayer().setLocation(houseData.isInitialized()?getHouseData(e.getPlayer().getName()).getSpawnLocation():new Location(
-								houseData.getSpawnLocation().x,
-								houseData.getSpawnLocation().y,
-								houseData.getSpawnLocation().z+1000.0f
-						)));
+						|| houseData.getSpawnLocation().z != 0.0f){*/
+							Shoebill.get().runOnSampThread(() -> e.getPlayer().setLocation(houseData.isInitialized()?getHouseData(e.getPlayer().getName()).getSpawnLocation():new Location(
+									houseData.getSpawnLocation().x,
+									houseData.getSpawnLocation().y,
+									houseData.getSpawnLocation().z+1000.0f
+							)));
+					//	}
 					}
 				}
 			}
@@ -108,7 +109,7 @@ public class PlayerManager implements Destroyable {
 			}*/
 			if(playerLifecycle.getEditObject() == e.getObject()
 			&& e.getEditResponse() == ObjectEditResponse.FINAL) {
-				HouseModel.moveModel(playerLifecycle.getEditHouseOwner(), e.getNewLocation(), getHouseData(playerLifecycle.getEditHouseOwner()).getHouseId());
+				HouseModel.moveModel(playerLifecycle.getEditHouseOwner(), new Location(e.getNewLocation().getX(), e.getNewLocation().getY(), e.getNewLocation().getZ()-0.85f), getHouseData(playerLifecycle.getEditHouseOwner()).getHouseId());
 				HouseModel.finishEditModel(e.getPlayer(), playerLifecycle.getEditHouseOwner());
 			}
 			if(playerLifecycle.getEditObject() == e.getObject()
@@ -122,6 +123,7 @@ public class PlayerManager implements Destroyable {
 					HouseSystem.getInstance().getMysqlConnection().deleteHouse(playerLifecycle.getEditHouseOwner());
 					e.getPlayer().sendMessage("Du hast das Haus von '"+playerLifecycle.getEditHouseOwner()+"' zerstoert!");
 				}
+				e.getObject().destroy();
 			}
 		});
 	}
@@ -136,6 +138,7 @@ public class PlayerManager implements Destroyable {
 				else houseData = getHouseData(playerName);
 				houseData.setLevel(HouseSystem.getInstance().getMysqlConnection().getHouseLevel(playerName));
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
+				houseData.setRotation(HouseSystem.getInstance().getMysqlConnection().getHouseRotation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
 				houseData.setOpen(false);
 			//	houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData));
@@ -151,6 +154,7 @@ public class PlayerManager implements Destroyable {
 				else houseData = getHouseData(playerName);
 				houseData.setLevel(HouseSystem.getInstance().getMysqlConnection().getHouseLevel(playerName));
 				houseData.setLocation(HouseSystem.getInstance().getMysqlConnection().getHouseLocation(playerName));
+				houseData.setRotation(HouseSystem.getInstance().getMysqlConnection().getHouseRotation(playerName));
 				houseData.setModel(HouseSystem.getInstance().getMysqlConnection().getHouseModel(playerName));
 				houseData.setOpen(false);
 			//	houseData.setSpawnLocation(HouseModel.loadSpawnLocation(houseData));
@@ -178,6 +182,7 @@ public class PlayerManager implements Destroyable {
 		HouseSystem.getInstance().getMysqlConnection().updateHouse(playerName, "house_model", houseData.getModel());
 		HouseSystem.getInstance().getMysqlConnection().updateHouse(playerName, "house_level", houseData.getLevel());
 		HouseSystem.getInstance().getMysqlConnection().updateHouseLocation(playerName, houseData.getLocation());
+		HouseSystem.getInstance().getMysqlConnection().updateHouseRotation(playerName, houseData.getRotation());
 		HouseSystem.getInstance().getMysqlConnection().updateHouse(playerName, "house_spawn", playerLifecycle.isHouseSpawn()?1:0);
 	}
 

@@ -1,8 +1,10 @@
 package me.alf21.housesystem;
 
+import net.gtaun.shoebill.Shoebill;
 import net.gtaun.shoebill.common.command.Command;
 import net.gtaun.shoebill.common.command.CommandHelp;
 import net.gtaun.shoebill.data.Color;
+import net.gtaun.shoebill.data.Location;
 import net.gtaun.shoebill.data.Vector3D;
 import net.gtaun.shoebill.object.Player;
 import net.gtaun.shoebill.object.SampObject;
@@ -22,7 +24,7 @@ public class Commands {
 			player.sendMessage("Du hast bereits ein Haus! Du kannst es mit /destroyHouse löschen");
 		} else {
 			if(HouseModel.initialize(player.getName(), modelId)){	
-				HouseSystem.getInstance().getMysqlConnection().createHouse(player.getName(), modelId, player.getLocation().x, player.getLocation().y, player.getLocation().z);
+				HouseSystem.getInstance().getMysqlConnection().createHouse(player.getName(), modelId, player.getLocation().x, player.getLocation().y, player.getLocation().z, 0, 0, 0);
 				HouseSystem.getInstance().getPlayerManager().initHouse(player.getName());
 			//	HouseModel.moveModel(player.getName(), new Location(player.getLocation().x+10.0f, player.getLocation().y, player.getLocation().z), modelId);
 				player.sendMessage("Du hast dein Haus gebaut! Platziere es nun an der richtigen Stelle...");
@@ -42,7 +44,7 @@ public class Commands {
 		} else {
 			String randomName = HouseSystem.getInstance().getMysqlConnection().aCreateHouse("buyable_", modelId, player.getLocation().x, player.getLocation().y, player.getLocation().z);
 			if(HouseModel.initialize(randomName, modelId)){	
-				HouseSystem.getInstance().getMysqlConnection().createHouse(randomName, modelId, player.getLocation().x, player.getLocation().y, player.getLocation().z);
+				HouseSystem.getInstance().getMysqlConnection().createHouse(randomName, modelId, player.getLocation().x, player.getLocation().y, player.getLocation().z, 0, 0, 0);
 				HouseSystem.getInstance().getPlayerManager().initHouse(randomName);
 			//	HouseModel.moveModel(randomName, new Location(player.getLocation().x, player.getLocation().y, player.getLocation().z), modelId);
 				player.sendMessage("Du hast ein Haus gebaut! Platziere es nun an der richtigen Stelle...");
@@ -135,21 +137,59 @@ public class Commands {
 				if (doorId <= 0 || doorId > houseData.getDoors().size()) {
 					player.sendMessage(Color.YELLOW, "Die Tür " + doorId + " gibt es nicht! Gebe /getDoors ein, um die Türen aufgelistet zu bekommen.");
 				} else if (houseData.getDoors().size() > 0) {
+					SampObject door = houseData.getDoors().get(doorId-1);
 					if(!houseData.isDoorOpen(doorId)){
-						SampObject door = houseData.getDoors().get(doorId-1);
-						door.move(door.getLocation().x, door.getLocation().y, door.getLocation().z+2, 2000);
-						player.sendMessage(Color.YELLOW, "Die Tür " + doorId + " wird geöffnet!");
-						houseData.setDoorStatus(doorId, true);
-						HouseSystem.getInstance().getPlayerManager().addHouseData(player.getName(), houseData);
+						Shoebill.get().runOnSampThread(() -> {
+							door.move(door.getLocation().x, door.getLocation().y, door.getLocation().z+2, 1.0f);
+							player.sendMessage(Color.YELLOW, "Die Tür " + doorId + " wird geöffnet!");
+							houseData.setDoorStatus(doorId, true);
+						});
 					} else {
-						SampObject door = houseData.getDoors().get(doorId-1);
-						door.move(door.getLocation().x, door.getLocation().y, door.getLocation().z-2, 2000);
-						player.sendMessage(Color.YELLOW, "Die Tür " + doorId + " wird geschlossen!");
-						houseData.setDoorStatus(doorId, false);
-						HouseSystem.getInstance().getPlayerManager().addHouseData(player.getName(), houseData);
+						Shoebill.get().runOnSampThread(() -> {
+							door.move(door.getLocation().x, door.getLocation().y, door.getLocation().z-2, 1.0f);
+							player.sendMessage(Color.YELLOW, "Die Tür " + doorId + " wird geschlossen!");
+							houseData.setDoorStatus(doorId, false);
+						});
 					}
+					HouseSystem.getInstance().getPlayerManager().addHouseData(player.getName(), houseData);
 				} else {
 					player.sendMessage(Color.RED, "Du hast keine Türen in deinem Haus!");
+				}
+			} else {
+				player.sendMessage(Color.YELLOW, "Dein Haus ist verschlossen, öffne es mit /openhouse !");
+			}
+		}
+		return true;
+	}
+
+	@Command
+	@CommandHelp("To open/close a gate") //TODO: Wenn man schnell hintereinander /door eingibt und das objekt noch nicht fertig gemoved ist vllt error mit den datas, ob tür geöffnet ist usw.
+	public boolean gate(Player player, int gateId){ //TODO: Auch einbrechen können, wenn nicht abgeschlossen ist!
+		if (!HouseSystem.getInstance().getPlayerManager().hasHouseData(player.getName())) {
+			player.sendMessage("Du hast gar kein Haus! Du kannst eines mit /createHouse erstellen");
+		} else {
+			HouseData houseData = HouseSystem.getInstance().getPlayerManager().getHouseData(player.getName());
+			if (houseData.isOpen()) {
+				if (gateId <= 0 || gateId > houseData.getGates().size()) {
+					player.sendMessage(Color.YELLOW, "Das Tor " + gateId + " gibt es nicht! Gebe /getGates ein, um die Türen aufgelistet zu bekommen.");
+				} else if (houseData.getGates().size() > 0) {
+					SampObject gate = houseData.getGates().get(gateId-1);
+					if(!houseData.isGateOpen(gateId)){
+						Shoebill.get().runOnSampThread(() -> {
+							gate.move(gate.getLocation().x, gate.getLocation().y, gate.getLocation().z+2, 1.0f);
+							player.sendMessage(Color.YELLOW, "Das Tor " + gateId + " wird geöffnet!");
+							houseData.setGateStatus(gateId, true);
+						});
+					} else {
+						Shoebill.get().runOnSampThread(() -> {
+							gate.move(gate.getLocation().x, gate.getLocation().y, gate.getLocation().z-2, 1.0f);
+							player.sendMessage(Color.YELLOW, "Das Tor " + gateId + " wird geschlossen!");
+							houseData.setGateStatus(gateId, false);
+						});
+					}
+					HouseSystem.getInstance().getPlayerManager().addHouseData(player.getName(), houseData);
+				} else {
+					player.sendMessage(Color.RED, "Du hast kein Tor in deinem Haus!");
 				}
 			} else {
 				player.sendMessage(Color.YELLOW, "Dein Haus ist verschlossen, öffne es mit /openhouse !");
@@ -171,6 +211,25 @@ public class Commands {
 				player.sendMessage(Color.YELLOW, "------ Türen ------");
 				for (int i = 1; i <= houseData.getDoors().size(); i++) {
 					player.sendMessage(Color.YELLOW, "Tür " + i);
+				}
+			}
+		}
+		return true;
+	}
+	
+	@Command
+	@CommandHelp("To open/close a gate")
+	public boolean getgates(Player player){
+		if (!HouseSystem.getInstance().getPlayerManager().hasHouseData(player.getName())) {
+			player.sendMessage("Du hast gar kein Haus! Du kannst eines mit /createHouse erstellen");
+		} else {
+			HouseData houseData = HouseSystem.getInstance().getPlayerManager().getHouseData(player.getName());
+			if (houseData.getGates() == null || houseData.getGates().size() < 1) {
+				player.sendMessage(Color.RED, "Du besitzt keine Tore!");
+			} else {
+				player.sendMessage(Color.YELLOW, "------ Tore ------");
+				for (int i = 1; i <= houseData.getGates().size(); i++) {
+					player.sendMessage(Color.YELLOW, "Tor " + i);
 				}
 			}
 		}
@@ -241,11 +300,24 @@ public class Commands {
 	}
 	
 	@Command
+	@CommandHelp("To go to your house location")
+	public boolean gotohouse(Player player){
+		if(!HouseSystem.getInstance().getPlayerManager().hasHouseData(player.getName())){
+			player.sendMessage("Du hast gar kein Haus! Du kannst eines mit /createHouse erstellen");
+		} else {
+			Location location = HouseSystem.getInstance().getPlayerManager().getHouseData(player.getName()).getLocation();
+			player.setLocation(location);
+		}
+		return true;
+	}
+	
+	@Command
 	@CommandHelp("To remove own spawn location")
 	public boolean househelp(Player player){
-		player.sendMessage("/aCreateHouse /changeSpawn /createHouse");
-		player.sendMessage("/destroyHouse /door /getDoors /houseSpawn");
-		player.sendMessage("/openHouse /removeSpawn /aDestroyHouse");
+		player.sendMessage("/changeSpawn /createHouse /gate /getGates");
+		player.sendMessage("/destroyHouse /door /getDoors");
+		player.sendMessage("/openHouse /removeSpawn /houseSpawn");
+		if(player.isAdmin()) player.sendMessage("/gotoHouse /aCreateHouse /aDestroyHouse");
 		return true;
 	}
 }

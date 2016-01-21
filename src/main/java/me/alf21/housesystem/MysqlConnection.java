@@ -73,9 +73,14 @@ public class MysqlConnection {
                 			"house_X FLOAT, " + 
                 			"house_Y FLOAT, " + 
                 			"house_Z FLOAT, " +
+                			"house_RX FLOAT, " +
+                			"house_RY FLOAT, " +
+                			"house_RZ FLOAT, " +
                 			"spawn_X FLOAT NOT NULL DEFAULT '0', " +
                 			"spawn_Y FLOAT NOT NULL DEFAULT '0', " +
-                			"spawn_Z FLOAT NOT NULL DEFAULT '0')");
+                			"spawn_Z FLOAT NOT NULL DEFAULT '0', " +
+                			"spawn_ANGLE FLOAT NOT NULL DEFAULT '0'" +
+                		")");
     		} else {
                 HouseSystem.getInstance().getLoggerInstance().info("Mysql Datenbank konnte nicht erstellt werden.");
             }
@@ -236,6 +241,28 @@ public class MysqlConnection {
 		return null;   
 	}
 	
+	public Vector3D getHouseRotation(String playerName) {
+        ResultSet rs;
+        Statement statement;
+        String query = String.format("SELECT * FROM samp_housesystem WHERE player = '%s'", playerName);
+        try {
+            if (connection != null && connection.isValid(1000)) {
+            	statement = connection.createStatement();
+                rs = statement.executeQuery(query);
+				if(rs.first()){
+					return new Vector3D(rs.getFloat("house_RX"), rs.getFloat("house_RY"), rs.getFloat("house_RZ"));
+				}
+            }
+			else {
+				return null;
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+        }
+		return null;   
+	}
+	
 	public Integer getHouseModel(String playerName) {
         ResultSet rs;
         Statement statement;
@@ -324,10 +351,10 @@ public class MysqlConnection {
 		return false;
 	}
 
-	public void createHouse(String playerName, int modelId, float x, float y, float z) {
+	public void createHouse(String playerName, int modelId, float x, float y, float z, float rx, float ry, float rz) {
 		try {
 			if (connection != null && connection.isValid(1000)) {
-				executeUpdate("INSERT INTO samp_housesystem (player, house_model, house_X, house_Y, house_Z) VALUES ('"+playerName+"', '"+modelId+"', '"+x+"', '"+y+"', '"+z+"')");
+				executeUpdate("INSERT INTO samp_housesystem (player, house_model, house_X, house_Y, house_Z, house_RX, house_RY, house_RZ) VALUES ('"+playerName+"', '"+modelId+"', '"+x+"', '"+y+"', '"+z+"', '"+rx+"', '"+ry+"', '"+rz+"')");
 			}
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
@@ -377,6 +404,19 @@ public class MysqlConnection {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 statement.execute("UPDATE samp_housesystem SET house_X = '"+location.x+"', house_Y = '"+location.y+"', house_Z = '"+location.z+"' WHERE player = '"+playerName+"'");
+			}
+		} catch (SQLException e) {
+            System.out.print("ERROR - Stacktrace : ");
+            e.printStackTrace();
+        }
+	}
+
+	public void updateHouseRotation(String playerName, Vector3D rotation) {
+		Statement statement;
+		try {
+            if (connection != null && connection.isValid(1000)) {
+            	statement = connection.createStatement();
+                statement.execute("UPDATE samp_housesystem SET house_RX = '"+rotation.x+"', house_RY = '"+rotation.y+"', house_RZ = '"+rotation.z+"' WHERE player = '"+playerName+"'");
 			}
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
